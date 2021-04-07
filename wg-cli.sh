@@ -30,7 +30,7 @@ AllowedIPs = 10.7.0.$octet/32
 # END_PEER $client
 EOF
 	# Create client configuration
-	cat << EOF > ./config/"$client".conf
+	cat << EOF > /root/wg-cli/config/"$client".conf
 [Interface]
 Address = 10.7.0.$octet/24
 DNS = 8.8.8.8, 8.8.4.4
@@ -122,13 +122,13 @@ case "$option" in
 			# Append new client configuration to the WireGuard interface
 			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
 			echo
-			qrencode -t UTF8 < ./config/"$client.conf" -o ./config/"$client.png"
+			qrencode -t UTF8 < /root/wg-cli/config/"$client.conf" -o /root/wg-cli/config/"$client.png"
 			echo
 			echo -e '\xE2\x86\x91 Sending to telegram group.'
-			curl -F document=@"./config/$client.conf" https://api.telegram.org/${BOT_TOKEN}/sendDocument?chat_id=${GROUP_ID}
-			curl -F document=@"./config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
+			curl -F document=@"/root/wg-cli/config/$client.conf" https://api.telegram.org/${BOT_TOKEN}/sendDocument?chat_id=${GROUP_ID}
+			curl -F document=@"/root/wg-cli/config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
 			echo
-			echo "$client added. Configuration available in:" ./config/"$client.conf"
+			echo "$client added. Configuration available in:" /root/wg-cli/config/"$client.conf"
 			exit
 		;;
         3)

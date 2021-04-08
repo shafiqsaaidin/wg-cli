@@ -121,14 +121,12 @@ case "$option" in
 			new_client_setup
 			# Append new client configuration to the WireGuard interface
 			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
-			echo
-			qrencode -t UTF8 < /root/wg-cli/config/"$client.conf" -o /root/wg-cli/config/"$client.png"
-			echo
+			qrencode < /root/wg-cli/config/"$client.conf" -o /root/wg-cli/config/"$client.png"
 			echo -e '\xE2\x86\x91 Sending to telegram group.'
 			curl -F document=@"/root/wg-cli/config/$client.conf" https://api.telegram.org/${BOT_TOKEN}/sendDocument?chat_id=${GROUP_ID}
-			curl -F document=@"/root/wg-cli/config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
+			curl -F photo=@"/root/wg-cli/config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
 			echo
-			echo "$client added. Configuration available in:" /root/wg-cli/config/"$client.conf"
+			echo "$client added."
 			exit
 		;;
         3)

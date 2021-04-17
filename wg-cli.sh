@@ -45,8 +45,12 @@ PersistentKeepalive = 25
 EOF
 }
 
-block_client () {
-	sed -n -e '/# BEGIN_PEER tgiskandar/ ,/# END_PEER tgiskandar/p' /etc/wireguard/wg0.conf
+search_client () {
+	echo
+	echo "Search for user:"
+	read -p "Name: " client
+	echo
+	sed -n -e "/# BEGIN_PEER $client/ ,/# END_PEER $client/p" /etc/wireguard/wg0.conf
 }
 
 delete_client () {
@@ -97,7 +101,7 @@ VPNJE WG-CLI
 
 Select an option:
   1) Add a new user
-  2) Disable an existing user
+  2) Search a user
   3) Delete an existing user
   4) Sync wireguard config"
 read -p "Option: " option
@@ -127,6 +131,10 @@ case "$option" in
 			curl -F photo=@"/root/wg-cli/config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
 			echo
 			echo "$client added."
+			exit
+		;;
+		2)
+			search_client
 			exit
 		;;
         3)

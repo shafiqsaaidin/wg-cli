@@ -3,7 +3,7 @@
 # Local .env
 if [ -f .env ]; then
     # Load Environment Variables
-    export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+    export $(cat /root/wg-cli/.env | grep -v '#' | awk '/=/ {print $1}')
 fi
 
 new_client_setup () {

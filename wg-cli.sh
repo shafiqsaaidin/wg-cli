@@ -119,7 +119,7 @@ Select an option:
   5) Sync all config
   6) Exit"
 read -p "Option: " option
-until [[ "$option" =~ ^[1-4]$ ]]; do
+until [[ "$option" =~ ^[1-6]$ ]]; do
         echo "$option: invalid selection."
         read -p "Option: " option
 done

@@ -89,6 +89,18 @@ delete_client () {
 	fi
 }
 
+sync_a_client() {
+	echo
+	echo "Resync a client"
+	read -p "Name: " client
+	
+	# Remove user from wireguard interface
+	wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+	
+	# Append new client configuration to the WireGuard interface
+	wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+}
+
 sync_config () {
 	echo "Syncing wireguard config..."
 	wg syncconf wg0 <(wg-quick strip wg0)
@@ -102,8 +114,10 @@ VPNJE WG-CLI
 Select an option:
   1) Add a new user
   2) Search a user
-  3) Delete an existing user
-  4) Sync wireguard config"
+  3) Delete a user
+  4) Resync a user
+  5) Sync all config
+  6) Exit"
 read -p "Option: " option
 until [[ "$option" =~ ^[1-4]$ ]]; do
         echo "$option: invalid selection."
@@ -174,7 +188,14 @@ case "$option" in
 			exit
 		;;
         4)
+			sync_a_client
+			exit
+        ;;
+		5)
 			sync_config
+			exit
+        ;;
+		6)
 			exit
         ;;
 esac

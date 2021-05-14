@@ -151,11 +151,11 @@ unblock_client () {
 		read -p "Unblock $client ? [y/N]: " unblock
 	done
 	if [[ "$unblock" =~ ^[yY]$ ]]; then
-		# Append new client configuration to the WireGuard interface
-		wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
-
 		# Uncomment config file
 		sed -e "/# BEGIN_PEER $client/,+5 s/^#//" -i /etc/wireguard/wg0.conf
+
+		# Append new client configuration to the WireGuard interface
+		wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
 
 		echo "$client unblocked!"
 	else

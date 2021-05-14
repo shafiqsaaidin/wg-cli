@@ -108,18 +108,76 @@ sync_config () {
 	exit
 }
 
+block_client () {
+	echo
+	echo "Enter username to block"
+	read -p "Name: " client
+
+	# Search the username and print out to screen
+	sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
+
+	echo
+	read -p "Block $client ? [y/N]: " block
+	until [[ "$block" =~ ^[yYnN]*$ ]]; do
+		echo "$block: invalid selection."
+		read -p "Block $client ? [y/N]: " block
+	done
+	if [[ "$block" =~ ^[yY]$ ]]; then
+		# Remove from the live interface
+		wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+
+		# Add comment to config file
+		sed -e "/# BEGIN_PEER $client/,+5 s/^/#/" -i /etc/wireguard/wg0.conf
+
+		echo "$client blocked!"
+	else
+		echo
+		echo "Block $client aborted!"
+	fi
+}
+
+unblock_client () {
+	echo
+	echo "Enter username to unblock"
+	read -p "Name: " client
+
+	# Search the username and print out to screen
+	sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
+
+	echo
+	read -p "Unblock $client ? [y/N]: " unblock
+	until [[ "$unblock" =~ ^[yYnN]*$ ]]; do
+		echo "$unblock: invalid selection."
+		read -p "Unblock $client ? [y/N]: " unblock
+	done
+	if [[ "$unblock" =~ ^[yY]$ ]]; then
+		# Append new client configuration to the WireGuard interface
+		wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+
+		# Uncomment config file
+		sed -e "/# BEGIN_PEER $client/,+5 s/^#//" -i /etc/wireguard/wg0.conf
+
+		echo "$client unblocked!"
+	else
+		echo
+		echo "Unblock $client aborted!"
+	fi
+}
+
 echo -e "
 VPNJE WG-CLI
 
 Select an option:
   1) Add a new user
   2) Search a user
-  3) Delete a user
-  4) Resync a user
-  5) Sync all config
-  6) Exit"
+  3) Block a user
+  4) Unblock a user
+  5) Delete a user
+  6) Resync a user
+  7) Sync all config
+  8) Exit"
 read -p "Option: " option
-until [[ "$option" =~ ^[1-6]$ ]]; do
+until [[ "$option" =~ ^[1-8]$ ]]; do
         echo "$option: invalid selection."
         read -p "Option: " option
 done
@@ -151,7 +209,15 @@ case "$option" in
 			search_client
 			exit
 		;;
-        3)
+		3)
+			block_client
+			exit
+		;;
+		4)
+			unblock_client
+			exit
+		;;
+        5)
 			number_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
 			if [[ "$number_of_clients" = 0 ]]; then
 				echo
@@ -187,15 +253,15 @@ case "$option" in
 			fi
 			exit
 		;;
-        4)
+        6)
 			sync_a_client
 			exit
         ;;
-		5)
+		7)
 			sync_config
 			exit
         ;;
-		6)
+		8)
 			exit
         ;;
 esac

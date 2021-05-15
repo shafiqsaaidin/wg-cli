@@ -7,6 +7,18 @@ if [ -f .env ]; then
 fi
 
 new_client_setup () {
+	echo
+	echo "Provide a name for the user:"
+	read -p "Name: " unsanitized_client
+	# Allow a limited set of characters to avoid conflicts
+	client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
+	while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" /etc/wireguard/wg0.conf; do
+		echo "$client: invalid name."
+		read -p "Name: " unsanitized_client
+		client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
+	done
+	echo
+
 	# Given a list of the assigned internal IPv4 addresses, obtain the lowest still
 	# available octet. Important to start looking at 2, because 1 is our gateway.
 	octet=2
@@ -43,6 +55,16 @@ AllowedIPs = 0.0.0.0/0
 Endpoint = $(grep '^# ENDPOINT' /etc/wireguard/wg0.conf | cut -d " " -f 3):$(grep ListenPort /etc/wireguard/wg0.conf | cut -d " " -f 3)
 PersistentKeepalive = 25
 EOF
+
+	# Append new client configuration to the WireGuard interface
+	wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+	#qrencode < /root/wg-cli/config/"$client.conf" -o /root/wg-cli/config/"$client.png"
+	echo -e '\xE2\x86\x91 Sending to telegram group.'
+	curl -F document=@"/root/wg-cli/config/$client.conf" https://api.telegram.org/${BOT_TOKEN}/sendDocument?chat_id=${GROUP_ID}
+	#curl -F photo=@"/root/wg-cli/config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
+	echo
+	echo "$client added."
+	exit
 }
 
 search_client () {
@@ -51,6 +73,7 @@ search_client () {
 	read -p "Name: " client
 	echo
 	sed -n -e "/# BEGIN_PEER $client/ ,/# END_PEER $client/p" /etc/wireguard/wg0.conf
+	exit
 }
 
 delete_client () {
@@ -87,6 +110,7 @@ delete_client () {
 		echo
 		echo "$client removal aborted!"
 	fi
+	exit
 }
 
 sync_a_client() {
@@ -99,6 +123,7 @@ sync_a_client() {
 	
 	# Append new client configuration to the WireGuard interface
 	wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+	exit
 }
 
 sync_config () {
@@ -137,6 +162,7 @@ block_client () {
 		echo
 		echo "Block $client aborted!"
 	fi
+	exit
 }
 
 unblock_client () {
@@ -168,6 +194,7 @@ unblock_client () {
 		echo
 		echo "Unblock $client aborted!"
 	fi
+	exit
 }
 
 echo -e "
@@ -189,83 +216,25 @@ until [[ "$option" =~ ^[1-8]$ ]]; do
 done
 case "$option" in
 		1)
-			echo
-			echo "Provide a name for the user:"
-			read -p "Name: " unsanitized_client
-			# Allow a limited set of characters to avoid conflicts
-			client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
-			while [[ -z "$client" ]] || grep -q "^# BEGIN_PEER $client$" /etc/wireguard/wg0.conf; do
-				echo "$client: invalid name."
-				read -p "Name: " unsanitized_client
-				client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
-			done
-			echo
 			new_client_setup
-			# Append new client configuration to the WireGuard interface
-			wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
-			#qrencode < /root/wg-cli/config/"$client.conf" -o /root/wg-cli/config/"$client.png"
-			echo -e '\xE2\x86\x91 Sending to telegram group.'
-			curl -F document=@"/root/wg-cli/config/$client.conf" https://api.telegram.org/${BOT_TOKEN}/sendDocument?chat_id=${GROUP_ID}
-			#curl -F photo=@"/root/wg-cli/config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
-			echo
-			echo "$client added."
-			exit
 		;;
 		2)
 			search_client
-			exit
 		;;
 		3)
 			block_client
-			exit
 		;;
 		4)
 			unblock_client
-			exit
 		;;
         5)
-			number_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
-			if [[ "$number_of_clients" = 0 ]]; then
-				echo
-				echo "There are no existing clients!"
-				exit
-			fi
-			echo
-			echo "Select the user to remove:"
-			grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
-			read -p "Client: " client_number
-			until [[ "$client_number" =~ ^[0-9]+$ && "$client_number" -le "$number_of_clients" ]]; do
-				echo "$client_number: invalid selection."
-				read -p "Client: " client_number
-			done
-			client=$(grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | sed -n "$client_number"p)
-			echo
-			read -p "Confirm $client removal? [y/N]: " remove
-			until [[ "$remove" =~ ^[yYnN]*$ ]]; do
-				echo "$remove: invalid selection."
-				read -p "Confirm $client removal? [y/N]: " remove
-			done
-			if [[ "$remove" =~ ^[yY]$ ]]; then
-				# The following is the right way to avoid disrupting other active connections:
-				# Remove from the live interface
-				wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
-				# Remove from the configuration file
-				sed -i "/^# BEGIN_PEER $client/,/^# END_PEER $client/d" /etc/wireguard/wg0.conf
-				echo
-				echo "$client removed!"
-			else
-				echo
-				echo "$client removal aborted!"
-			fi
-			exit
+			delete_client
 		;;
         6)
 			sync_a_client
-			exit
         ;;
 		7)
 			sync_config
-			exit
         ;;
 		8)
 			exit

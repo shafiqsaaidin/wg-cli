@@ -64,7 +64,7 @@ EOF
 	#curl -F photo=@"/root/wg-cli/config/$client.png" https://api.telegram.org/${BOT_TOKEN}/sendPhoto?chat_id=${GROUP_ID}
 	echo
 	echo "$client added."
-	exit
+	main_menu
 }
 
 search_client () {
@@ -73,7 +73,7 @@ search_client () {
 	read -p "Name: " client
 	echo
 	sed -n -e "/# BEGIN_PEER $client/ ,/# END_PEER $client/p" /etc/wireguard/wg0.conf
-	exit
+	main_menu
 }
 
 delete_client () {
@@ -110,7 +110,7 @@ delete_client () {
 		echo
 		echo "$client removal aborted!"
 	fi
-	exit
+	main_menu
 }
 
 sync_a_client() {
@@ -123,14 +123,14 @@ sync_a_client() {
 	
 	# Append new client configuration to the WireGuard interface
 	wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
-	exit
+	main_menu
 }
 
 sync_config () {
 	echo "Syncing wireguard config..."
 	wg syncconf wg0 <(wg-quick strip wg0)
 	echo "Done"
-	exit
+	main_menu
 }
 
 block_client () {
@@ -162,7 +162,7 @@ block_client () {
 		echo
 		echo "Block $client aborted!"
 	fi
-	exit
+	main_menu
 }
 
 unblock_client () {
@@ -194,12 +194,13 @@ unblock_client () {
 		echo
 		echo "Unblock $client aborted!"
 	fi
-	exit
+	main_menu
 }
 
-echo -e "
-VPNJE WG-CLI
-
+main_menu () {
+	echo -e "
+VPNJE WG-CLI 
+=====================
 Select an option:
   1) Add a new user
   2) Search a user
@@ -208,13 +209,15 @@ Select an option:
   5) Delete a user
   6) Resync a user
   7) Sync all config
-  8) Exit"
-read -p "Option: " option
-until [[ "$option" =~ ^[1-8]$ ]]; do
-        echo "$option: invalid selection."
-        read -p "Option: " option
-done
-case "$option" in
+  8) Exit
+======================	
+"
+	read -p "Option: " option
+	until [[ "$option" =~ ^[1-8]$ ]]; do
+		echo "$option: invalid selection."
+		read -p "Option: " option
+	done
+	case "$option" in
 		1)
 			new_client_setup
 		;;
@@ -227,16 +230,19 @@ case "$option" in
 		4)
 			unblock_client
 		;;
-        5)
+		5)
 			delete_client
 		;;
-        6)
+		6)
 			sync_a_client
-        ;;
+		;;
 		7)
 			sync_config
-        ;;
+		;;
 		8)
 			exit
-        ;;
-esac
+		;;
+	esac
+}
+
+main_menu

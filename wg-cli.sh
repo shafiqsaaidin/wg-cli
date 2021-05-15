@@ -129,6 +129,9 @@ block_client () {
 		# Add comment to config file
 		sed -e "/# BEGIN_PEER $client/,+5 s/^/#/" -i /etc/wireguard/wg0.conf
 
+		# Resync wireguard config
+		wg syncconf wg0 <(wg-quick strip wg0)
+
 		echo "$client blocked!"
 	else
 		echo
@@ -156,6 +159,9 @@ unblock_client () {
 
 		# Append new client configuration to the WireGuard interface
 		wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+
+		# Resync wireguard config
+		wg syncconf wg0 <(wg-quick strip wg0)
 
 		echo "$client unblocked!"
 	else

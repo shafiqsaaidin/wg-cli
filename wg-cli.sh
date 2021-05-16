@@ -157,6 +157,9 @@ block_client () {
 		# Resync wireguard config
 		wg syncconf wg0 <(wg-quick strip wg0)
 
+		# Ouput the result of blocking to screen
+		sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
+
 		echo "$client blocked!"
 	else
 		echo
@@ -188,6 +191,9 @@ unblock_client () {
 
 		# Resync wireguard config
 		wg syncconf wg0 <(wg-quick strip wg0)
+
+		# Ouput the result of unblocking to screen
+		sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
 
 		echo "$client unblocked!"
 	else

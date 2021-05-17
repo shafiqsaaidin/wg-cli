@@ -6,6 +6,16 @@ if [ -f .env ]; then
     export $(cat /root/wg-cli/.env | grep -v '#' | awk '/=/ {print $1}')
 fi
 
+get_total_user () {
+	grep -w "BEGIN_PEER" /etc/wireguard/wg0.conf | wc -l
+	exit
+}
+
+get_total_blocked_user () {
+	grep -w "#PublicKey" /etc/wireguard/wg0.conf | wc -l
+	exit
+}
+
 new_client_setup () {
 	echo
 	echo "Provide a name for the user:"
@@ -209,8 +219,11 @@ unblock_client () {
 
 main_menu () {
 	echo -e "
-VPNJE WG-CLI 
-=====================
+VPNJE WG-CLI USER MANAGEMENT
+
+TOTAL USER: $(get_total_user)
+TOTAL DISABLED: $(get_total_blocked_user)
+
 Select an option:
   1) Add a new user
   2) Search a user

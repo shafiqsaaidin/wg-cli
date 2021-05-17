@@ -103,31 +103,29 @@ delete_client () {
 		exit
 	fi
 	echo
-	echo "Select the client to remove:"
-	grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | nl -s ') '
-	read -p "Client: " client_number
-	until [[ "$client_number" =~ ^[0-9]+$ && "$client_number" -le "$number_of_clients" ]]; do
-		echo "$client_number: invalid selection."
-		read -p "Client: " client_number
-	done
-	client=$(grep '^# BEGIN_PEER' /etc/wireguard/wg0.conf | cut -d ' ' -f 3 | sed -n "$client_number"p)
+	echo "${RED}${BOLD}Delete wireguard user${RESET}"
 	echo
-	read -p "Confirm $client removal? [y/N]: " remove
+	read -p "Username: " user_name
+	echo
+	# Search the username and print out to screen
+	sed -n -e "/# BEGIN_PEER $user_name/,+5p" /etc/wireguard/wg0.conf
+	echo
+	read -p "Confirm $user_name removal? [y/N]: " remove
 	until [[ "$remove" =~ ^[yYnN]*$ ]]; do
 		echo "$remove: invalid selection."
-		read -p "Confirm $client removal? [y/N]: " remove
+		read -p "Confirm $user_name removal? [y/N]: " remove
 	done
 	if [[ "$remove" =~ ^[yY]$ ]]; then
 		# The following is the right way to avoid disrupting other active connections:
 		# Remove from the live interface
-		wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+		wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
 		# Remove from the configuration file
-		sed -i "/^# BEGIN_PEER $client/,/^# END_PEER $client/d" /etc/wireguard/wg0.conf
+		sed -i "/^# BEGIN_PEER $user_name/,/^# END_PEER $user_name/d" /etc/wireguard/wg0.conf
 		echo
-		echo "$client removed!"
+		echo "${RED}$user_name removed!${RESET}"
 	else
 		echo
-		echo "$client removal aborted!"
+		echo "$user_name removal aborted!"
 	fi
 	main_menu
 }

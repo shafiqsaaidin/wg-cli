@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Color code
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BOLD=$(tput bold;)
+RESET=$(tput sgr0)
+
 # Local .env
 if [ -f .env ]; then
     # Load Environment Variables
@@ -7,12 +14,14 @@ if [ -f .env ]; then
 fi
 
 get_total_user () {
-	grep -w "BEGIN_PEER" /etc/wireguard/wg0.conf | wc -l
+	CMD=$(grep -w "BEGIN_PEER" /etc/wireguard/wg0.conf | wc -l)
+	echo "${GREEN}${BOLD}${CMD}${RESET}"
 	exit
 }
 
 get_total_blocked_user () {
-	grep -w "#PublicKey" /etc/wireguard/wg0.conf | wc -l
+	CMD2=$(grep -w "#PublicKey" /etc/wireguard/wg0.conf | wc -l)
+	echo "${RED}${BOLD}${CMD2}${RESET}"
 	exit
 }
 
@@ -172,7 +181,7 @@ block_client () {
 		sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
 
 		echo
-		echo "$client blocked!"
+		echo -e "$client ${RED}${BOLD}blocked!${RESET}"
 	else
 		echo
 		echo "Block $client aborted!"
@@ -209,7 +218,7 @@ unblock_client () {
 		sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
 
 		echo
-		echo "$client unblocked!"
+		echo -e "$client ${GREEN}${BOLD}unblocked!${RESET}"
 	else
 		echo
 		echo "Unblock $client aborted!"
@@ -219,23 +228,24 @@ unblock_client () {
 
 main_menu () {
 	echo -e "
-VPNJE WG-CLI USER MANAGEMENT
+${GREEN}${BOLD}VPNJE WG-CLI USER MANAGEMENT${RESET}
 
 TOTAL USER: $(get_total_user)
 TOTAL DISABLED: $(get_total_blocked_user)
 
+======================
 Select an option:
-  1) Add a new user
-  2) Search a user
-  3) Block a user
-  4) Unblock a user
-  5) Delete a user
-  6) Resync a user
-  7) Sync all config
-  8) Exit
+  ${YELLOW}1)${RESET} Add a new user
+  ${YELLOW}2)${RESET} Search a user
+  ${YELLOW}3)${RESET} Block a user
+  ${YELLOW}4)${RESET} Unblock a user
+  ${YELLOW}5)${RESET} Delete a user
+  ${YELLOW}6)${RESET} Resync a user
+  ${YELLOW}7)${RESET} Sync all config
+  ${YELLOW}8)${RESET} Exit
 ======================	
 "
-	read -p "Option: " option
+	read -p "Option [${YELLOW}1 - 8${RESET}]: " option
 	until [[ "$option" =~ ^[1-8]$ ]]; do
 		echo "$option: invalid selection."
 		read -p "Option: " option

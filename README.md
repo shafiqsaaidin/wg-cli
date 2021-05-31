@@ -2,9 +2,10 @@
 Management script for managing wireguard client
 
 ##### Some of the features:
-* add wireguard client
-* block wireguard client
-* Unblock wireguard client
+* add client
+* block client
+* unblock client
+* resync client
+* search for user
+* delete user
 * send config file to telegram
-* resync wireguard client
-* search for existing user

@@ -108,7 +108,7 @@ delete_client () {
 	read -p "Username: " user_name
 	echo
 	# Search the username and print out to screen
-	sed -n -e "/# BEGIN_PEER $user_name/,+5p" /etc/wireguard/wg0.conf
+	sed -n -e "/# BEGIN_PEER $user_name$/,+5p" /etc/wireguard/wg0.conf
 	echo
 	read -p "Confirm $user_name removal? [y/N]: " remove
 	until [[ "$remove" =~ ^[yYnN]*$ ]]; do
@@ -120,7 +120,7 @@ delete_client () {
 		# Remove from the live interface
 		wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
 		# Remove from the configuration file
-		sed -i "/^# BEGIN_PEER $user_name/,/^# END_PEER $user_name/d" /etc/wireguard/wg0.conf
+		sed -i "/^# BEGIN_PEER $user_name$/,/^# END_PEER $user_name$/d" /etc/wireguard/wg0.conf
 		echo
 		echo "${RED}$user_name removed!${RESET}"
 	else
@@ -139,7 +139,7 @@ sync_a_client() {
 	wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
 	
 	# Append new client configuration to the WireGuard interface
-	wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+	wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client$/,/^# END_PEER $client$/p" /etc/wireguard/wg0.conf)
 	main_menu
 }
 
@@ -156,7 +156,7 @@ block_client () {
 	read -p "Name: " client
 
 	# Search the username and print out to screen
-	sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
+	sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
 
 	echo
 	read -p "Block $client ? [y/N]: " block
@@ -169,14 +169,14 @@ block_client () {
 		wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
 
 		# Add comment to config file
-		sed -e "/# BEGIN_PEER $client/,+5 s/^/#/" -i /etc/wireguard/wg0.conf
+		sed -e "/# BEGIN_PEER $client$/,+5 s/^/#/" -i /etc/wireguard/wg0.conf
 
 		# Resync wireguard config
 		wg syncconf wg0 <(wg-quick strip wg0)
 
 		echo
 		# Ouput the result of blocking to screen
-		sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
+		sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
 
 		echo
 		echo -e "$client ${RED}${BOLD}blocked!${RESET}"
@@ -193,7 +193,7 @@ unblock_client () {
 	read -p "Name: " client
 
 	# Search the username and print out to screen
-	sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
+	sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
 
 	echo
 	read -p "Unblock $client ? [y/N]: " unblock
@@ -203,17 +203,17 @@ unblock_client () {
 	done
 	if [[ "$unblock" =~ ^[yY]$ ]]; then
 		# Uncomment config file
-		sed -e "/# BEGIN_PEER $client/,+5 s/^#//" -i /etc/wireguard/wg0.conf
+		sed -e "/# BEGIN_PEER $client$/,+5 s/^#//" -i /etc/wireguard/wg0.conf
 
 		# Append new client configuration to the WireGuard interface
-		wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client/,/^# END_PEER $client/p" /etc/wireguard/wg0.conf)
+		wg addconf wg0 <(sed -n "/^# BEGIN_PEER $client$/,/^# END_PEER $client$/p" /etc/wireguard/wg0.conf)
 
 		# Resync wireguard config
 		wg syncconf wg0 <(wg-quick strip wg0)
 
 		echo
 		# Ouput the result of unblocking to screen
-		sed -n -e "/# BEGIN_PEER $client/,+5p" /etc/wireguard/wg0.conf
+		sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
 
 		echo
 		echo -e "$client ${GREEN}${BOLD}unblocked!${RESET}"

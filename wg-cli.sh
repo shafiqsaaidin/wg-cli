@@ -108,8 +108,6 @@ delete_client () {
 		exit
 	fi
 	echo
-	echo "${RED}${BOLD}Delete wireguard user${RESET}"
-	echo
 
     # check if the acc is disable before remove
     if [ $disabled -eq 1 ]; then
@@ -159,7 +157,7 @@ block_client () {
     # Resync wireguard config
     wg syncconf wg0 <(wg-quick strip wg0)
 
-    echo -e "$client ${RED}${BOLD}blocked!${RESET}"
+    echo -e "${RED}${BOLD}$client blocked!${RESET}"
 }
 
 unblock_client () {
@@ -274,12 +272,11 @@ Select an option:
             done
             if [[ "$block" =~ ^[yY]$ ]]; then
                 block_client $client
-                echo "${RED}$client block!${RESET}"
             else
                 echo
                 echo "$client block aborted!"
             fi
-			block_client $client
+            main_menu
 		;;
 		4)
 			unblock_client
@@ -289,6 +286,9 @@ Select an option:
 	        echo "Enter username to delete"
 	        read -p "Name: " client
             echo
+            # Search the username and print out to screen
+	        sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
+            echo
             read -p "Confirm $client removal? [y/N]: " remove
             until [[ "$remove" =~ ^[yYnN]*$ ]]; do
                 echo "$remove: invalid selection."
@@ -296,11 +296,11 @@ Select an option:
             done
             if [[ "$remove" =~ ^[yY]$ ]]; then
                 delete_client $client
-                echo "${RED}$client removed!${RESET}"
             else
                 echo
                 echo "$client removal aborted!"
             fi
+            main_menu
 		;;
 		6)
 			sync_a_client

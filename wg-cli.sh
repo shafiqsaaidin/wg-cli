@@ -96,6 +96,11 @@ search_client () {
 }
 
 delete_client () {
+    # get username from argument
+    user_name=$1
+
+    disabled=$(grep -x "## BEGIN_PEER $user_name" /etc/wireguard/wg0.conf | wc -l)
+
 	number_of_clients=$(grep -c '^# BEGIN_PEER' /etc/wireguard/wg0.conf)
 	if [[ "$number_of_clients" = 0 ]]; then
 		echo
@@ -104,8 +109,6 @@ delete_client () {
 	fi
 	echo
 	echo "${RED}${BOLD}Delete wireguard user${RESET}"
-	echo
-	read -p "Username: " user_name
 	echo
 	# Search the username and print out to screen
 	sed -n -e "/# BEGIN_PEER $user_name$/,+5p" /etc/wireguard/wg0.conf
@@ -116,11 +119,16 @@ delete_client () {
 		read -p "Confirm $user_name removal? [y/N]: " remove
 	done
 	if [[ "$remove" =~ ^[yY]$ ]]; then
-		# The following is the right way to avoid disrupting other active connections:
-		# Remove from the live interface
-		wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
-		# Remove from the configuration file
-		sed -i "/^# BEGIN_PEER $user_name$/,/^# END_PEER $user_name$/d" /etc/wireguard/wg0.conf
+        # check if the acc is disable before remove
+        if [ $disabled -eq 1 ]; then
+            # Remove from the live interface
+            wg set wg0 peer "$(sed -n "/^## BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+            sed -i "/^## BEGIN_PEER $user_name$/,/^## END_PEER $user_name$/d" /etc/wireguard/wg0.conf
+        else
+            wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+            sed -i "/^# BEGIN_PEER $user_name$/,/^# END_PEER $user_name$/d" /etc/wireguard/wg0.conf
+        fi
+		
 		echo
 		echo "${RED}$user_name removed!${RESET}"
 	else
@@ -151,9 +159,8 @@ sync_config () {
 }
 
 block_client () {
-	echo
-	echo "Enter username to block"
-	read -p "Name: " client
+    # get client username from argument $1
+    client=$1
 
 	# Search the username and print out to screen
 	sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
@@ -256,13 +263,19 @@ Select an option:
 			search_client
 		;;
 		3)
-			block_client
+            echo
+	        echo "Enter username to block"
+	        read -p "Name: " client
+			block_client $client
 		;;
 		4)
 			unblock_client
 		;;
 		5)
-			delete_client
+            echo
+	        echo "Enter username to delete"
+	        read -p "Name: " client
+			delete_client $client
 		;;
 		6)
 			sync_a_client

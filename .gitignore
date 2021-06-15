@@ -1,3 +1,4 @@
 .env
 name.txt
 config
+backup/

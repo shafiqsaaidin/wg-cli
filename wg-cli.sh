@@ -57,13 +57,13 @@ new_client_setup () {
 [Peer]
 PublicKey = $(wg pubkey <<< $key)
 PresharedKey = $psk
-AllowedIPs = 10.7.0.$octet/32
+AllowedIPs = 10.8.0.$octet/32
 # END_PEER $client
 EOF
 	# Create client configuration
 	cat << EOF > /root/wg-cli/config/"$client".conf
 [Interface]
-Address = 10.7.0.$octet/24
+Address = 10.8.0.$octet/24
 DNS = 8.8.8.8, 8.8.4.4
 PrivateKey = $key
 

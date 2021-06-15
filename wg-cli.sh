@@ -206,7 +206,8 @@ batch_block () {
             block_client $p
         done < $input
     else
-        echo "$input not exist."
+        echo "$input not exist. Creating $input file... Please rerun the script"
+        touch $input
     fi
 }
 
@@ -220,7 +221,8 @@ batch_delete () {
             delete_client $line
         done < "$input"
     else
-        echo "$input not exist."
+        echo "$input not exist. Creating $input file... Please rerun the script"
+        touch $input
     fi
 }
 
@@ -307,9 +309,11 @@ Select an option:
 		;;
         7)
 			batch_block
+            main_menu
 		;;
         8)
             batch_delete
+            main_menu
 		;;
 		9)
 			sync_config

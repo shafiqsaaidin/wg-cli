@@ -110,32 +110,19 @@ delete_client () {
 	echo
 	echo "${RED}${BOLD}Delete wireguard user${RESET}"
 	echo
-	# Search the username and print out to screen
-	sed -n -e "/# BEGIN_PEER $user_name$/,+5p" /etc/wireguard/wg0.conf
-	echo
-	read -p "Confirm $user_name removal? [y/N]: " remove
-	until [[ "$remove" =~ ^[yYnN]*$ ]]; do
-		echo "$remove: invalid selection."
-		read -p "Confirm $user_name removal? [y/N]: " remove
-	done
-	if [[ "$remove" =~ ^[yY]$ ]]; then
-        # check if the acc is disable before remove
-        if [ $disabled -eq 1 ]; then
-            # Remove from the live interface
-            wg set wg0 peer "$(sed -n "/^## BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
-            sed -i "/^## BEGIN_PEER $user_name$/,/^## END_PEER $user_name$/d" /etc/wireguard/wg0.conf
-        else
-            wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
-            sed -i "/^# BEGIN_PEER $user_name$/,/^# END_PEER $user_name$/d" /etc/wireguard/wg0.conf
-        fi
-		
-		echo
-		echo "${RED}$user_name removed!${RESET}"
-	else
-		echo
-		echo "$user_name removal aborted!"
-	fi
-	main_menu
+
+    # check if the acc is disable before remove
+    if [ $disabled -eq 1 ]; then
+        # Remove from the live interface
+        wg set wg0 peer "$(sed -n "/^## BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+        sed -i "/^## BEGIN_PEER $user_name$/,/^## END_PEER $user_name$/d" /etc/wireguard/wg0.conf
+    else
+        wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $user_name$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+        sed -i "/^# BEGIN_PEER $user_name$/,/^# END_PEER $user_name$/d" /etc/wireguard/wg0.conf
+    fi
+    
+    echo
+    echo "${RED}${BOLD}$user_name removed!${RESET}"
 }
 
 sync_a_client() {
@@ -162,36 +149,17 @@ block_client () {
     # get client username from argument $1
     client=$1
 
-	# Search the username and print out to screen
-	sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
-
 	echo
-	read -p "Block $client ? [y/N]: " block
-	until [[ "$block" =~ ^[yYnN]*$ ]]; do
-		echo "$block: invalid selection."
-		read -p "Block $client ? [y/N]: " block
-	done
-	if [[ "$block" =~ ^[yY]$ ]]; then
-		# Remove from the live interface
-		wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
+    # Remove from the live interface
+    wg set wg0 peer "$(sed -n "/^# BEGIN_PEER $client$/,\$p" /etc/wireguard/wg0.conf | grep -m 1 PublicKey | cut -d " " -f 3)" remove
 
-		# Add comment to config file
-		sed -e "/# BEGIN_PEER $client$/,+5 s/^/#/" -i /etc/wireguard/wg0.conf
+    # Add comment to config file
+    sed -e "/# BEGIN_PEER $client$/,+5 s/^/#/" -i /etc/wireguard/wg0.conf
 
-		# Resync wireguard config
-		wg syncconf wg0 <(wg-quick strip wg0)
+    # Resync wireguard config
+    wg syncconf wg0 <(wg-quick strip wg0)
 
-		echo
-		# Ouput the result of blocking to screen
-		sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
-
-		echo
-		echo -e "$client ${RED}${BOLD}blocked!${RESET}"
-	else
-		echo
-		echo "Block $client aborted!"
-	fi
-	main_menu
+    echo -e "$client ${RED}${BOLD}blocked!${RESET}"
 }
 
 unblock_client () {
@@ -231,6 +199,33 @@ unblock_client () {
 	main_menu
 }
 
+batch_block () {
+    # input file
+    input="name.txt"
+
+    if [ -f "$input" ]; then
+        while read p; do
+            block_client $p
+        done < $input
+    else
+        echo "$input not exist."
+    fi
+}
+
+batch_delete () {
+    # input file
+    input="name.txt"
+
+    if [ -f "$input" ]; then
+        while IFS= read -r line
+        do
+            delete_client $line
+        done < "$input"
+    else
+        echo "$input not exist."
+    fi
+}
+
 main_menu () {
 	echo -e "
 ${GREEN}${BOLD}VPNJE WG-CLI USER MANAGEMENT${RESET}
@@ -246,12 +241,14 @@ Select an option:
   ${YELLOW}4)${RESET} Unblock a user
   ${YELLOW}5)${RESET} Delete a user
   ${YELLOW}6)${RESET} Resync a user
-  ${YELLOW}7)${RESET} Sync all config
-  ${YELLOW}8)${RESET} Exit
+  ${YELLOW}7)${RESET} Batch Block user
+  ${YELLOW}8)${RESET} Batch Delete user
+  ${YELLOW}9)${RESET} Sync all config
+  ${YELLOW}0)${RESET} Exit
 ======================	
 "
-	read -p "Option [${YELLOW}1 - 8${RESET}]: " option
-	until [[ "$option" =~ ^[1-8]$ ]]; do
+	read -p "Option [${YELLOW}0 - 9${RESET}]: " option
+	until [[ "$option" =~ ^[0-9]$ ]]; do
 		echo "$option: invalid selection."
 		read -p "Option: " option
 	done
@@ -266,6 +263,22 @@ Select an option:
             echo
 	        echo "Enter username to block"
 	        read -p "Name: " client
+            echo
+            # Search the username and print out to screen
+	        sed -n -e "/# BEGIN_PEER $client$/,+5p" /etc/wireguard/wg0.conf
+            echo
+            read -p "Confirm $client block? [y/N]: " block
+            until [[ "$block" =~ ^[yYnN]*$ ]]; do
+                echo "$block: invalid selection."
+                read -p "Confirm $client block? [y/N]: " block
+            done
+            if [[ "$block" =~ ^[yY]$ ]]; then
+                block_client $client
+                echo "${RED}$client block!${RESET}"
+            else
+                echo
+                echo "$client block aborted!"
+            fi
 			block_client $client
 		;;
 		4)
@@ -275,15 +288,33 @@ Select an option:
             echo
 	        echo "Enter username to delete"
 	        read -p "Name: " client
-			delete_client $client
+            echo
+            read -p "Confirm $client removal? [y/N]: " remove
+            until [[ "$remove" =~ ^[yYnN]*$ ]]; do
+                echo "$remove: invalid selection."
+                read -p "Confirm $client removal? [y/N]: " remove
+            done
+            if [[ "$remove" =~ ^[yY]$ ]]; then
+                delete_client $client
+                echo "${RED}$client removed!${RESET}"
+            else
+                echo
+                echo "$client removal aborted!"
+            fi
 		;;
 		6)
 			sync_a_client
 		;;
-		7)
+        7)
+			batch_block
+		;;
+        8)
+            batch_delete
+		;;
+		9)
 			sync_config
 		;;
-		8)
+		0)
 			exit
 		;;
 	esac

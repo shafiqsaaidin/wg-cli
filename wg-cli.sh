@@ -40,13 +40,13 @@ new_client_setup () {
 
 	# Given a list of the assigned internal IPv4 addresses, obtain the lowest still
 	# available octet. Important to start looking at 2, because 1 is our gateway.
-	octet=2
+	octet=4
 	while grep AllowedIPs /etc/wireguard/wg0.conf | cut -d "." -f 4 | cut -d "/" -f 1 | grep -q "$octet"; do
 		(( octet++ ))
 	done
 	# Don't break the WireGuard configuration in case the address space is full
-	if [[ "$octet" -eq 120 ]]; then
-		echo "120 clients are already configured. The WireGuard internal subnet is full!"
+	if [[ "$octet" -eq 62 ]]; then
+		echo "62 clients are already configured. The WireGuard internal subnet is full!"
 		exit
 	fi
 	key=$(wg genkey)
@@ -63,7 +63,7 @@ EOF
 	# Create client configuration
 	cat << EOF > /root/wg-cli/config/"$client".conf
 [Interface]
-Address = 10.7.0.$octet/24
+Address = 10.7.0.$octet/26
 DNS = 8.8.8.8, 8.8.4.4
 PrivateKey = $key
 
